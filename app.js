@@ -5,7 +5,7 @@ const app = express();
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const _ = require("lodash");
-const encrypt = require("mongoose-encryption");
+const md5 = require("md5");
 
 const mongoose = require("mongoose");
 mongoose.connect("mongodb://127.0.0.1:27017/userDB", { useNewUrlParser: true });
@@ -23,16 +23,11 @@ const userSchema = mongoose.Schema({
   password: String,
 });
 
-// console.log(test);to test .env file
-
-userSchema.plugin(encrypt, {secret: process.env.SECRET, encryptedFields: ['password']});//ENCRYPTION
 //encryption applied to password field
-//plugin is way to apply prebuilt packages (i.e more functionalities) to all documents of this schema
 //encryption done because in database password was clearly visible which we don't want if multiple people
 //can access the database
-
-
 const User = mongoose.model("User", userSchema);
+
 
 app.get("/", (req, res) => {
   res.render("home");
@@ -48,7 +43,7 @@ app
     User.findOne({ username: req.body.username })
       .then((result) => {
         if (result){  
-            if(result.password == req.body.password)
+            if(result.password == md5(req.body.password))
                 res.render("secrets");
             else
                 res.send("Password entered incorrent plz try again!!");
@@ -70,7 +65,10 @@ app
     res.render("register");
   })
   .post((req, res) => {
-    const newUser = new User(req.body);
+    const newUser = new User({
+      username: req.body.username,
+      password: md5(req.body.password)//hashing the password for security
+    });
     console.log(req.body);
     newUser
       .save()
