@@ -1,11 +1,13 @@
 //jshint esversion:6
-const test = require('dotenv').config()
+const test = require("dotenv").config();
 const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const _ = require("lodash");
-const md5 = require("md5");
+const bcrypt = require("bcrypt");
+const saltRounds = Number(process.env.saltRounds);
+// console.log(test);
 
 const mongoose = require("mongoose");
 mongoose.connect("mongodb://127.0.0.1:27017/userDB", { useNewUrlParser: true });
@@ -28,7 +30,6 @@ const userSchema = mongoose.Schema({
 //can access the database
 const User = mongoose.model("User", userSchema);
 
-
 app.get("/", (req, res) => {
   res.render("home");
 });
@@ -42,15 +43,16 @@ app
     // console.log(req.body);
     User.findOne({ username: req.body.username })
       .then((result) => {
-        if (result){  
-            if(result.password == md5(req.body.password))
-                res.render("secrets");
-            else
-                res.send("Password entered incorrent plz try again!!");
+        if (result) {
+          bcrypt
+            .compare(req.body.password, result.password)
+            .then((matchFound) => {
+              if (matchFound) res.render("secrets");
+              else res.send("Incorrect Password entry, plz try again");
+            });
         } else {
           res.send("Email entered was incorrect, plz try again!!");
         }
-        // console.log(result);
       })
       .catch((err) => {
         res.send(
@@ -65,19 +67,28 @@ app
     res.render("register");
   })
   .post((req, res) => {
-    const newUser = new User({
-      username: req.body.username,
-      password: md5(req.body.password)//hashing the password for security
-    });
-    console.log(req.body);
-    newUser
-      .save()
-      .then((result) => {
-        res.render("secrets");
+    bcrypt
+      .hash(req.body.password, saltRounds)
+      .then((hash) => {
+        const newUser = new User({
+          username: req.body.username,
+          password: hash,
+        });
+        // console.log(req.body);
+        newUser
+          .save()
+          .then((result) => {
+            res.render("secrets");
+          })
+          .catch((err) => {
+            res.send(
+              "Server Error: Unable to register currently, plz try again later!!"
+            );
+          });
       })
       .catch((err) => {
         res.send(
-          "Server Error: Unable to register currently, plz try again later!!"
+          "Server Error: Unable to provide Secure registration at the moment, plz try again later!!"
         );
       });
   });
