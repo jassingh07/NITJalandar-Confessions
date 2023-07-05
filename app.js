@@ -11,6 +11,7 @@ const passportLocalMongoose = require("passport-local-mongoose");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const findOrCreate = require("mongoose-findorcreate");
 
+
 // console.log(test);
 const mongoose = require("mongoose");
 mongoose.connect("mongodb://127.0.0.1:27017/userDB", { useNewUrlParser: true });
@@ -36,7 +37,8 @@ app.use(passport.session()); //use passport to deal with session
 const userSchema = mongoose.Schema({
   username: String,
   password: String,
-  googleId: String//because new documents were created on each login, during google authentication, due to absence of this field.
+  googleId: String, //because new documents were created on each login, during google authentication, due to absence of this field.
+  secrets: [String],
 });
 
 passport.use(
@@ -85,6 +87,7 @@ passport.deserializeUser(function (user, cb) {
   });
 });
 
+
 //encryption done because in database password was clearly visible which we don't want if multiple people
 //can access the database
 
@@ -122,7 +125,6 @@ app
         console.log(err);
         res.redirect("/login");
       } else {
-        console.log(req.body.password);
         passport.authenticate("local")(req, res, () => {
           res.redirect("/secrets");
         });
@@ -141,14 +143,6 @@ app.route("/logout").get((req, res) => {
   });
 });
 
-app.route("/secrets").get((req, res) => {
-  if (req.isAuthenticated()) {
-    res.render("secrets");
-  } else {
-    res.redirect("/login");
-  }
-});
-
 app
   .route("/auth/google")
   .get(passport.authenticate("google", { scope: ["profile"] }));
@@ -165,3 +159,45 @@ app.get(
   }
 );
 //authenticating them "locally" and saving session for user
+
+app.route("/secrets").get((req, res) => {
+  if (req.isAuthenticated()) {
+    User.find({secrets: {$ne: null}}).then((result) => {
+      if (result) {
+        res.render("secrets", { userWithSecrets: result });
+      }
+      //else situation will not come
+    });
+  } else {
+    res.redirect("/login");
+  }
+});
+
+app
+  .route("/secrets/submit")
+  .get((req, res) => {
+    if (req.isAuthenticated()) {
+      res.render("submit");
+    } else {
+      res.redirect("/login");
+    }
+  })
+  .post((req, res) => {
+    if (req.isAuthenticated()) {
+      User.findById(req.user.id).then((result) => {
+        if (result) {
+          const anotherSecret = req.body.secret;
+          result.secrets.push(anotherSecret);
+          result.save();
+          res.redirect("/secrets");
+        } else {
+          res.redirect("/login");
+        }
+      }).catch(err =>{
+        res.write("Database Error: Unable to fetch secrets<br>");
+        res.write("<a href='/secrets'>Try reading your secrets again</a>")
+      })
+    } else {
+      res.redirect("/login");
+    }
+  });
