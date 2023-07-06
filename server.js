@@ -10,7 +10,7 @@ const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const findOrCreate = require("mongoose-findorcreate");
-
+const FacebookStrategy = require("passport-facebook").Strategy;
 
 // console.log(test);
 const mongoose = require("mongoose");
@@ -38,14 +38,15 @@ const userSchema = mongoose.Schema({
   username: String,
   password: String,
   googleId: String, //because new documents were created on each login, during google authentication, due to absence of this field.
+  facebookId: String,
   secrets: [String],
 });
 
 passport.use(
   new GoogleStrategy(
     {
-      clientID: process.env.CLIENT_ID,
-      clientSecret: process.env.CLIENT_SECRET,
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL: "http://localhost:3000/auth/google/secrets",
       userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo",
     },
@@ -63,6 +64,19 @@ passport.use(
     }
   )
 );
+
+passport.use(new FacebookStrategy({
+    clientID: process.env.FACEBOOK_APP_ID,
+    clientSecret: process.env.FACEBOOK_APP_SECRET,
+    callbackURL: "http://localhost:3000/auth/facebook/callback"
+  },
+  function(accessToken, refreshToken, profile, cb) {
+    User.findOrCreate({ facebookId: profile.id }, function (err, user) {
+      return cb(err, user);
+    });
+  }
+));
+
 
 userSchema.plugin(passportLocalMongoose);
 userSchema.plugin(findOrCreate);
@@ -118,20 +132,47 @@ app
   .get((req, res) => {
     res.render("login");
   })
-  .post((req, res) => {
-    const user = new User(req.body);
-    req.login(user, function (err) {
-      if (err) {
-        console.log(err);
-        res.redirect("/login");
+  .post((req, res) =>{
+    //check the DB to see if the username that was used to login exists in the DB
+    User.findOne({username: req.body.username}).then(foundUser =>{
+      //if username is found in the database, create an object called "user" that will store the username and password
+      //that was used to login
+      if(foundUser){
+      const user = new User({
+        username: req.body.username,
+        password: req.body.password
+      });
+        //use the "user" object that was just created to check against the username and password in the database
+        //in this case below, "user" will either return a "false" boolean value if it doesn't match, or it will
+        //return the user found in the database
+        passport.authenticate("local", function(err, user){
+          if(err){
+            console.log(err);
+          } else {
+            //this is the "user" returned from the passport.authenticate callback, which will be either
+            //a false boolean value if no it didn't match the username and password or
+            //a the user that was found, which would make it a truthy statement
+            if(user){
+              //if true, then log the user in, else redirect to login page
+              req.login(user, function(err){
+              res.redirect("/secrets");
+              });
+            } else {
+              res.redirect("/login");
+            }
+          }
+        })(req, res);
+      //if no username is found at all, redirect to login page.
       } else {
-        passport.authenticate("local")(req, res, () => {
-          res.redirect("/secrets");
-        });
-        //authenticating using local strategy
+        //user does not exists
+
+        res.redirect("/login")
       }
-    });
+    }).catch(err =>{
+      res.send("Database Error: Unable to check credentials, plz try again!!");
+    })
   });
+  
 
 app.route("/logout").get((req, res) => {
   req.logout((err) => {
@@ -196,6 +237,7 @@ app
       }).catch(err =>{
         res.write("Database Error: Unable to fetch secrets<br>");
         res.write("<a href='/secrets'>Try reading your secrets again</a>")
+        res.send();
       })
     } else {
       res.redirect("/login");
