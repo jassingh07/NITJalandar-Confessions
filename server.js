@@ -14,7 +14,7 @@ const FacebookStrategy = require("passport-facebook").Strategy;
 
 // console.log(test);
 const mongoose = require("mongoose");
-mongoose.connect("mongodb://127.0.0.1:27017/userDB", { useNewUrlParser: true });
+mongoose.connect("mongodb+srv://erjaskeeratsingh:Waheguru%402002@cluster0.rhrrq3r.mongodb.net/ConfessionDB", { useNewUrlParser: true });
 app.set("view engine", "ejs");
 
 app.use(bodyParser.urlencoded({ extended: true }));
