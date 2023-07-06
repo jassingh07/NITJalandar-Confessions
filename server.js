@@ -11,8 +11,8 @@ const passportLocalMongoose = require("passport-local-mongoose");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const findOrCreate = require("mongoose-findorcreate");
 const FacebookStrategy = require("passport-facebook").Strategy;
+const localhost = "https://nitj-confessions.onrender.com";
 
-const localhost = "https://secrets-jassingh07.onrender.com";
 // console.log(test);
 const mongoose = require("mongoose");
 mongoose.connect("mongodb+srv://erjaskeeratsingh:Waheguru%402002@cluster0.rhrrq3r.mongodb.net/ConfessionDB", { useNewUrlParser: true });
