@@ -12,6 +12,7 @@ const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const findOrCreate = require("mongoose-findorcreate");
 const FacebookStrategy = require("passport-facebook").Strategy;
 
+const localhost = "https://secrets-jassingh07.onrender.com";
 // console.log(test);
 const mongoose = require("mongoose");
 mongoose.connect("mongodb+srv://erjaskeeratsingh:Waheguru%402002@cluster0.rhrrq3r.mongodb.net/ConfessionDB", { useNewUrlParser: true });
@@ -47,8 +48,8 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "http://localhost:3000/auth/google/secrets",
-      userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo",
+      callbackURL: localhost + "/auth/google/secrets",
+      userProfileURL: localhost + "/oauth2/v3/userinfo",
     },
     //after google server and local authentication is done then this callback
     //will be triggered and we will save profile on our database
@@ -68,7 +69,7 @@ passport.use(
 passport.use(new FacebookStrategy({
     clientID: process.env.FACEBOOK_APP_ID,
     clientSecret: process.env.FACEBOOK_APP_SECRET,
-    callbackURL: "http://localhost:3000/auth/facebook/callback"
+    callbackURL: localhost + "/auth/facebook/callback"
   },
   function(accessToken, refreshToken, profile, cb) {
     User.findOrCreate({ facebookId: profile.id }, function (err, user) {
