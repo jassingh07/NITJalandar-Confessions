@@ -11,7 +11,7 @@ const passportLocalMongoose = require("passport-local-mongoose");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const findOrCreate = require("mongoose-findorcreate");
 const FacebookStrategy = require("passport-facebook").Strategy;
-const localhost = "http://nitj-confessions.onrender.com/";
+const localhost = "http://nitj-confessions.onrender.com";
 
 // console.log(test);
 const mongoose = require("mongoose");
