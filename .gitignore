@@ -1,3 +1,4 @@
+angela madam.js
 # Logs
 logs
 *.log
@@ -37,6 +38,7 @@ bower_components
 
 # Compiled binary addons (https://nodejs.org/api/addons.html)
 build/Release
+
 
 # Dependency directories
 node_modules/
